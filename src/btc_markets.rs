@@ -1,10 +1,12 @@
-use csv::Trim;
+use crate::csv_utils::get_rows;
+use crate::trade;
+use crate::trade::TradeType::{Buy, Sell};
+use chrono::NaiveDateTime as DateTime;
 use itertools::Itertools;
 use std::error::Error;
-use std::fs::File;
 
 pub fn load_csv(filename: &str) -> Result<Vec<Trade>, Box<Error>> {
-    let rows = get_rows(filename)?;
+    let rows = get_rows::<Row>(filename)?;
 
     let trades_grouped = rows
         .into_iter()
@@ -23,20 +25,6 @@ pub fn load_csv(filename: &str) -> Result<Vec<Trade>, Box<Error>> {
     Ok(trades)
 }
 
-fn get_rows(filename: &str) -> Result<Vec<Row>, Box<Error>> {
-    let file = File::open(filename)?;
-    let mut rdr = csv::ReaderBuilder::new()
-        .trim(Trim::Headers)
-        .from_reader(file);
-
-    let mut rows = vec![];
-    for result in rdr.deserialize() {
-        rows.push(result?);
-    }
-
-    Ok(rows)
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Row {
@@ -47,7 +35,7 @@ struct Row {
     // TODO: use rationals instead of floats?
     amount: f64,
     description: String,
-    reference_id: u32
+    reference_id: u32,
 }
 
 #[derive(Default, Debug, Serialize)]
@@ -95,7 +83,8 @@ impl Trade {
         } else if currency == self.sold_currency {
             self.sold_amount += amount;
         } else {
-            panic!("currency not one of the ones bought or sold in this txn: {} not in {}, {}",
+            panic!(
+                "currency not one of the ones bought or sold in this txn: {} not in {}, {}",
                 currency, self.bought_currency, self.sold_currency
             );
         }
@@ -123,5 +112,32 @@ impl Trade {
 
     fn process_transfer(&mut self, _: &Row) {
         // TODO: do something sensible here
+    }
+
+    pub fn into_common(self) -> trade::Trade {
+        let datetime = DateTime::parse_from_str(&self.creation_time, "%+").unwrap();
+
+        // Crypto sell
+        if self.bought_currency == "AUD" {
+            trade::Trade {
+                datetime,
+                buy_or_sell: Sell,
+                crypto_currency: self.sold_currency,
+                crypto_amount: self.sold_amount,
+                aud_equivalent: self.bought_amount,
+                info: format!("{}: {}", self.reference_id, self.description),
+            }
+        }
+        // Crypto buy
+        else {
+            trade::Trade {
+                datetime,
+                buy_or_sell: Buy,
+                crypto_currency: self.bought_currency,
+                crypto_amount: self.bought_amount,
+                aud_equivalent: self.sold_amount,
+                info: format!("{}: {}", self.reference_id, self.description),
+            }
+        }
     }
 }
