@@ -1,34 +1,35 @@
 #[macro_use]
 extern crate serde_derive;
 
+mod bittrex;
 mod btc_markets;
 mod coin_gecko;
 mod csv_utils;
 mod trade;
 
-use coin_gecko::PriceHist;
-use std::collections::HashMap;
+use coin_gecko::{PriceHist, PriceHists};
 use std::error::Error;
-use std::io;
 
 fn run() -> Result<(), Box<Error>> {
     let currencies = &["BTC", "ETH", "MAID", "LTC"];
 
-    let mut price_history = HashMap::new();
+    let mut price_history = PriceHists::default();
     for currency in currencies {
         println!("Parsing currency hist for {}", currency);
         let hist = PriceHist::from_file(&format!("price_hist/{}.csv", currency))?;
-        price_history.insert(currency, hist);
+        price_history.hists.insert(currency, hist);
     }
 
     let btc_markets_trades = btc_markets::load_csv("data/btcmarkets.csv")?;
+
+    let bittrex_trades = bittrex::load_csv("data/bittrex.csv", &price_history)?;
 
     let all_transactions: Vec<_> = btc_markets_trades
         .into_iter()
         .map(|t| t.into_common())
         .collect();
 
-    for t in all_transactions {
+    for t in bittrex_trades {
         println!("{:?}", t);
     }
 

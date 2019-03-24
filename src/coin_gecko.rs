@@ -12,11 +12,15 @@ struct Row {
     total_volume: String,
 }
 
+#[derive(Default)]
 pub struct PriceHist {
     pub data: BTreeMap<Date, Option<f64>>,
 }
 
-pub type PriceHists = HashMap<&'static str, PriceHist>;
+#[derive(Default)]
+pub struct PriceHists {
+    pub hists: HashMap<&'static str, PriceHist>,
+}
 
 impl PriceHist {
     pub fn from_file(filename: &str) -> Result<Self, Box<Error>> {
@@ -32,5 +36,14 @@ impl PriceHist {
             .collect();
 
         Ok(PriceHist { data })
+    }
+}
+
+impl PriceHists {
+    pub fn convert(&self, currency: &str, amount: f64, date: &Date) -> Option<f64> {
+        self.hists
+            .get(currency)
+            .and_then(|hist| hist.data.get(date))
+            .and_then(|op_price| op_price.map(|price| price * amount))
     }
 }
