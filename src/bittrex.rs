@@ -61,6 +61,7 @@ impl Row {
             crypto_currency: sell_currency.into(),
             crypto_amount: sell_amount,
             aud_equivalent,
+            source: "Bittrex".into(),
             info: "".into(),
         };
 
@@ -70,6 +71,7 @@ impl Row {
             crypto_currency: buy_currency.into(),
             crypto_amount: buy_amount,
             aud_equivalent,
+            source: "Bittrex".into(),
             info: "".into(),
         };
 

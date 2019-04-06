@@ -125,6 +125,7 @@ impl Trade {
                 crypto_currency: self.sold_currency,
                 crypto_amount: self.sold_amount,
                 aud_equivalent: self.bought_amount,
+                source: "BTCMarkets".into(),
                 info: format!("{}: {}", self.reference_id, self.description),
             }
         }
@@ -136,6 +137,7 @@ impl Trade {
                 crypto_currency: self.bought_currency,
                 crypto_amount: self.bought_amount,
                 aud_equivalent: self.sold_amount,
+                source: "BTCMarkets".into(),
                 info: format!("{}: {}", self.reference_id, self.description),
             }
         }
